@@ -1,0 +1,3 @@
+# path: configs/ablations/no_edl.yaml
+exp: { name: ablation_no_edl, seed: 42, deterministic: false }
+ablation: no_edl

@@ -1,0 +1,3 @@
+# path: configs/ablations/no_boundary_weight.yaml
+exp: { name: ablation_no_boundary_weight, seed: 42, deterministic: false }
+ablation: no_boundary_weight

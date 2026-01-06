@@ -1,0 +1,3 @@
+# path: configs/ablations/cnn_only.yaml
+exp: { name: ablation_cnn_only, seed: 42, deterministic: false }
+ablation: cnn_only

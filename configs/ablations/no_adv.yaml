@@ -1,0 +1,5 @@
+# path: configs/ablations/no_adv.yaml
+exp: { name: ablation_no_adv, seed: 42, deterministic: false }
+stage1:
+  adv: { enabled: false }
+ablation: no_adv

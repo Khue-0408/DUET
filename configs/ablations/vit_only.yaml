@@ -1,0 +1,3 @@
+# path: configs/ablations/vit_only.yaml
+exp: { name: ablation_vit_only, seed: 42, deterministic: false }
+ablation: vit_only

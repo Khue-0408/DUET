@@ -1,0 +1,89 @@
+# path: configs/duet_default.yaml
+exp:
+  name: duet_default
+  seed: 42
+  deterministic: false
+
+data:
+  dataset_name: PolypDB
+  root: data/PolypDB
+  meta_csv: meta.csv
+  split_dir: splits
+  train_split: train.txt
+  val_split: val.txt
+  test_split: test.txt
+  image_size: 512      # paper inference uses 512x512
+  num_workers: 4
+
+model:
+  stage1_ckpt: ""      # path to Stage1 encoder (E*_theta)
+  fft:
+    # Paper: radius mask in frequency domain, cutoff not specified (Sec. 3.2) → ASSUMPTION.
+    method: radius_ratio         # {radius_ratio, energy_percentile}
+    radius_ratio: 0.10
+    energy_percentile: 0.90      # alternative
+  encoders:
+    eh:
+      name: tf_efficientnet_b4
+      pretrained: true           # convenience; Stage1 ckpt will overwrite if provided
+      out_indices: [1, 2, 3, 4]  # multi-scale for FPN
+    el:
+      name: vit_base_patch16_224
+      img_size: 512
+      patch_size: 16
+      mae_init:
+        mode: timm_mae           # {timm_mae, ckpt_path, none}
+        timm_name: vit_base_patch16_224.mae   # ASSUMPTION convenience
+        ckpt_path: ""
+      feature_blocks: [2, 5, 8, 11]   # ASSUMPTION: reasonable pyramid taps
+  decoders:
+    type: fpn_light
+    fpn_dim: 256
+    dropout: 0.1                 # MC dropout option exists but default off for efficiency
+  evidential:
+    lambda_kl: 0.1               # Training Details
+    boundary_weights:
+      # Paper (Eq. (9) + Training Details): wB=3, wC=1, wBG=1
+      wB: 3.0
+      wC: 1.0
+      wBG: 1.0
+      # Paper uses rd/re band; not fixed values → ASSUMPTION defaults.
+      re: 5
+      rd: 10
+    lambda_dice: 0.5             # Training Details
+  fusion:
+    type: evidence_weighted      # Eq. (10)(11)(12)
+    eps: 1.0e-6
+    detach_weights: true         # paper: "did not find necessary to backprop through fusion weights"
+
+train:
+  epochs: 50                     # Training Details
+  batch_size: 4
+  lr_encoder: 2.0e-4             # Training Details
+  lr_decoder: 5.0e-4             # Training Details
+  weight_decay: 0.0
+  amp: true
+  log_every: 20
+  save_every: 1
+  resume: ""
+
+eval:
+  split: val
+  ece_bins: 10                   # Sec. 4.1
+  npv_threshold: 0.5             # Sec. 4.1; can set 0.9 for strict scenario
+  loco:
+    enabled: false
+    dataset_name: PolypGen
+
+infer:
+  image_path: ""
+  image_dir: ""
+  out_dir: outputs
+  save_prob: true
+  save_uncertainty: true
+
+logging:
+  out_dir: runs
+  tensorboard: true
+
+ablation: ""   # or set one of: cnn_only, vit_only, no_edl, no_boundary_weight, avg_prob_fusion, early_fusion, late_fusion

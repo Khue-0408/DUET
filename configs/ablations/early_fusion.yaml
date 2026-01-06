@@ -1,0 +1,3 @@
+# path: configs/ablations/early_fusion.yaml
+exp: { name: ablation_early_fusion, seed: 42, deterministic: false }
+ablation: early_fusion

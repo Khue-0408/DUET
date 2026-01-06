@@ -1,0 +1,50 @@
+# path: configs/stage1_pretrain.yaml
+exp:
+  name: stage1_pretrain
+  seed: 42
+  deterministic: false
+
+data:
+  dataset_name: PolypGen
+  root: data/PolypGen
+  meta_csv: meta.csv
+  split_dir: splits
+  train_split: train.txt
+  val_split: val.txt
+  image_size: 512
+  num_workers: 4
+
+stage1:
+  region_gen:
+    mode: pseudomask   # {pseudomask, weak}
+    pseudo_mask_key: pseudo_mask
+    # Paper says re/rd ~ 5-10 pixels (Sec. 3.1); default below is ASSUMPTION.
+    re: 5
+    rd: 10
+  contrastive:
+    tau: 0.2           # Training Details
+    pairs_per_image: 64 # Training Details (64 positive/negative pairs per image per iter)
+    proj_dim: 128
+    feature_level: 1   # which EfficientNet feature map index to use for pixel embeddings
+  aux_seg:
+    enabled: true      # Eq. (2) uses Lseg to predict pseudo-mask; allow disable if no pseudo-mask
+    lambda_seg: 1.0    # paper: "≈1"
+  adv:
+    enabled: true
+    lambda_adv: 0.5    # Training Details
+    grl_lambda: 1.0
+    mlp_hidden: 256
+
+train:
+  epochs: 100          # Training Details
+  batch_size: 4
+  lr: 1.0e-4           # Training Details
+  weight_decay: 0.0
+  amp: true
+  log_every: 20
+  save_every: 1
+  resume: ""
+
+logging:
+  out_dir: runs
+  tensorboard: true

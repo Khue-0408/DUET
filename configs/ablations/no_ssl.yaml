@@ -1,0 +1,6 @@
+# path: configs/ablations/no_ssl.yaml
+# Stage1 removed: train DUET without loading stage1_ckpt (Sec. 4.3 ablation)
+exp: { name: ablation_no_ssl, seed: 42, deterministic: false }
+ablation: no_ssl
+model:
+  stage1_ckpt: ""

@@ -1,0 +1,3 @@
+# path: configs/ablations/avg_prob_fusion.yaml
+exp: { name: ablation_avg_prob_fusion, seed: 42, deterministic: false }
+ablation: avg_prob_fusion

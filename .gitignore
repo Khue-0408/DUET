@@ -1,0 +1,17 @@
+# path: .gitignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.swp
+.venv/
+venv/
+runs/
+outputs/
+data/
+.DS_Store
+
+# Exclude papers folder and large files
+papers/
+*.pdf
+*.zip
