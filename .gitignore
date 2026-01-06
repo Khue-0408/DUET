@@ -8,7 +8,7 @@ __pycache__/
 venv/
 runs/
 outputs/
-data/
+/data/
 .DS_Store
 
 # Exclude papers folder and large files
