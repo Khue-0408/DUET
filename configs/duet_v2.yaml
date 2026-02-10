@@ -1,0 +1,127 @@
+# path: configs/duet_v2.yaml
+# Updated configuration for DUET Stage 2-3 with adaptive FFT and new losses.
+# Changes: 
+#   - Adaptive energy-percentile FFT split
+#   - Edge alignment auto-check/calibration options
+#   - Weighted focal + IoU losses
+#   - Evidence fusion with stop-gradient
+
+exp:
+  name: duet_v2
+  seed: 42
+  deterministic: false
+
+data:
+  dataset_name: PolypDB
+  root: data/PolypDB
+  meta_csv: meta.csv
+  split_dir: splits
+  train_split: train.txt
+  val_split: val.txt
+  test_split: test.txt
+  image_size: 512
+  num_workers: 4
+
+model:
+  stage1_ckpt: ""
+  
+  # Stage 2: FFT Frequency Split (UPDATED)
+  fft:
+    method: energy_percentile          # {radius_ratio, energy_percentile}
+    radius_ratio: 0.10                 # Used if method=radius_ratio
+    # Adaptive energy percentile parameters (Goal A)
+    p_default: 0.95                    # Default energy percentile threshold
+    p_min: 0.85                        # Minimum for auto-adjustment
+    p_step: 0.02                       # Step size for auto-adjustment
+    per_channel: true                  # FFT per-channel vs luminance
+    log_cutoff: false                  # Log D0 per image
+    # Edge alignment auto-calibration (Goal A2)
+    auto_edge_adjust: false            # Enable edge-alignment check
+    edge_metric_threshold: 0.30        # Gradient-energy ratio threshold
+    auto_adjust_max_steps: 5           # Max adjustment iterations
+    high_boost_factor: 1.2             # High-boost if edge emphasis weak
+  
+  encoders:
+    eh:
+      name: tf_efficientnet_b4
+      pretrained: true
+      out_indices: [1, 2, 3, 4]
+    el:
+      name: vit_base_patch16_224
+      img_size: 512
+      patch_size: 16
+      mae_init:
+        mode: timm_mae
+        timm_name: vit_base_patch16_224.mae
+        ckpt_path: ""
+      feature_blocks: [2, 5, 8, 11]
+  
+  decoders:
+    type: fpn_light
+    fpn_dim: 256
+    dropout: 0.1
+  
+  # Stage 3: Evidential Deep Learning
+  evidential:
+    lambda_kl: 0.1
+    boundary_weights:
+      wB: 3.0
+      wC: 1.0
+      wBG: 1.0
+      re: 5
+      rd: 10
+    lambda_dice: 0.5
+  
+  # Stage 3: Fusion (UPDATED with stop-gradient)
+  fusion:
+    type: evidence_weighted            # {evidence_weighted, avg_prob}
+    eps: 1.0e-6
+    detach_weights: true               # CRITICAL: stop-gradient on π_H, π_L
+    detach_concentration: false        # Optional: also detach S_H, S_L
+    log_weights: false                 # Log mean fusion weights
+  
+  # NEW: Weighted Focal + IoU Loss (Goal C)
+  weighted_loss:
+    enabled: true
+    kernel_size: 5                     # Window for boundary weight computation
+    lambda_boundary: 5.0               # Boundary weight scaling: w = 1 + λ*β
+    gamma_focal: 2.0                   # Focal loss exponent
+    eps: 1.0e-7
+  
+  # Loss weights (Goal C3)
+  loss_weights:
+    lambda_edl: 1.0                    # Weight for EDL losses
+    lambda_seg: 1.0                    # Weight for weighted focal + IoU
+    lambda_dice: 0.5                   # Weight for Dice loss
+
+train:
+  epochs: 50
+  batch_size: 4
+  lr_encoder: 2.0e-4
+  lr_decoder: 5.0e-4
+  weight_decay: 0.0
+  amp: true
+  log_every: 20
+  save_every: 1
+  resume: ""
+
+eval:
+  split: val
+  ece_bins: 10
+  npv_threshold: 0.5
+  loco:
+    enabled: false
+    dataset_name: PolypGen
+
+infer:
+  image_path: ""
+  image_dir: ""
+  out_dir: outputs
+  save_prob: true
+  save_uncertainty: true
+
+logging:
+  out_dir: runs
+  tensorboard: true
+
+ablation: ""  # cnn_only, vit_only, no_edl, no_boundary_weight, avg_prob_fusion, early_fusion, late_fusion
